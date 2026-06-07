@@ -28,12 +28,13 @@ def extract_embeddings(model, loader, device):
     return np.concatenate(embeddings), np.concatenate(targets), np.array(names)
 
 
-def save_embeddings(checkpoint: Path, cfg: TrainConfig, out: Path):
+def save_embeddings(checkpoint: Path, cfg: TrainConfig, out: Path, imagenet: bool = False):
     set_seed(cfg.seed)
     device = get_device()
-    model = MelanomaResNet18(pretrained=False).to(device)
-    state = torch.load(checkpoint, map_location=device)
-    model.load_state_dict(state["model"])
+    model = MelanomaResNet18(pretrained=imagenet).to(device)
+    if not imagenet:
+        state = torch.load(checkpoint, map_location=device)
+        model.load_state_dict(state["model"])
 
     _, val_df = load_split(cfg)
     ds = SIIMISICDataset(val_df, JPEG_DIR, build_transforms(cfg.image_size, train=False))
@@ -85,9 +86,10 @@ if __name__ == "__main__":
     parser.add_argument("--checkpoint", type=Path, default=CHECKPOINT_DIR / "resnet18_best.pt")
     parser.add_argument("--out", type=Path, default=EMBEDDING_DIR / "val_embeddings.npz")
     parser.add_argument("--plot", choices=["tsne", "pca", "none"], default="tsne")
+    parser.add_argument("--imagenet", action="store_true")
     args = parser.parse_args()
 
     cfg = TrainConfig()
-    embeds, targets, _ = save_embeddings(args.checkpoint, cfg, args.out)
+    embeds, targets, _ = save_embeddings(args.checkpoint, cfg, args.out, imagenet=args.imagenet)
     if args.plot != "none":
         plot_embedding_2d(embeds, targets, FIGURE_DIR / f"embedding_{args.plot}.png", method=args.plot)
