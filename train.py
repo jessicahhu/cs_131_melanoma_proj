@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 from config import CHECKPOINT_DIR, TrainConfig
 from dataset import build_dataloaders
-from model import MelanomaResNet18
+from model import build_model
 from utils import get_device, set_seed
 
 
@@ -37,11 +37,11 @@ def run_epoch(model, loader, criterion, optimizer, device, train: bool):
     return float(np.mean(losses)), auc
 
 
-def main(cfg: TrainConfig, out: Path):
+def main(cfg: TrainConfig, out: Path, backbone: str):
     set_seed(cfg.seed)
     device = get_device()
     train_loader, val_loader = build_dataloaders(cfg)
-    model = MelanomaResNet18(pretrained=True, dropout=cfg.dropout).to(device)
+    model = build_model(backbone, pretrained=True, dropout=cfg.dropout).to(device)
     criterion = nn.BCEWithLogitsLoss()
     optimizer = torch.optim.AdamW(model.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=cfg.epochs)
@@ -69,6 +69,8 @@ if __name__ == "__main__":
     parser.add_argument("--lr", type=float, default=TrainConfig.lr)
     parser.add_argument("--weight-decay", type=float, default=TrainConfig.weight_decay)
     parser.add_argument("--dropout", type=float, default=TrainConfig.dropout)
+    parser.add_argument("--fold", type=int, default=None)
+    parser.add_argument("--backbone", default="resnet18")
     parser.add_argument("--subsample", type=float, default=None)
     parser.add_argument("--out", type=Path, default=CHECKPOINT_DIR / "resnet18_best.pt")
     args = parser.parse_args()
@@ -81,5 +83,6 @@ if __name__ == "__main__":
         weight_decay=args.weight_decay,
         dropout=args.dropout,
         subsample_fraction=args.subsample,
+        fold=args.fold,
     )
-    main(cfg, args.out)
+    main(cfg, args.out, args.backbone)
