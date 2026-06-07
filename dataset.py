@@ -53,6 +53,10 @@ class SIIMISICDataset(Dataset):
 
 def load_split(cfg: TrainConfig):
     df = pd.read_csv(TRAIN_CSV)
+    if cfg.fold is not None:
+        df = df[df["tfrecord"] >= 0].copy()
+        group = df["tfrecord"] // 3
+        return df[group != cfg.fold], df[group == cfg.fold]
     if cfg.subsample_fraction is not None:
         df, _ = train_test_split(
             df,
