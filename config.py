@@ -29,3 +29,4 @@ class TrainConfig:
     seed: int = 42
     pos_oversample: float = 20.0
     subsample_fraction: float | None = None
+    fold: int | None = None
